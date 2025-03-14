@@ -1,0 +1,191 @@
+#!/bin/sh
+
+# Copyright (c) 2025 Michael Greenberg
+#
+# Usage of this source code is governed by the GPL license. See the
+# LICENSE file in the root directory of this project's repository.
+#
+# https://github.com/mgree/mute
+
+MUTE_VERSION="0.1.0"
+MUTE_COMMAND="${0##*/}"
+
+################################################################################
+# Cleanup (removes GDB script if it exists)
+################################################################################
+
+cleanup() {
+    ec=$?
+    
+    [ -f "$MUTE_GDB_SCRIPT" ] && rm "$MUTE_GDB_SCRIPT"
+    
+    exit $ec
+}
+trap cleanup EXIT
+
+################################################################################
+# Mutes a file descriptor unconditionally
+#
+# Will try to redirect to /dev/null before calling close
+################################################################################
+
+mute_unconditionally() {
+    fd="$1"
+    indent="$2"
+
+    echo "${indent}# mute fd $fd unconditionally"
+    echo "${indent}if $devnull > 0"
+    echo "${indent}  call (int) dup2($devnull, $fd)"
+    echo "${indent}else"
+    echo "${indent}  call (int) close($fd)"
+    echo "${indent}end"
+}
+
+################################################################################
+# Mutes a file descriptor if it's a tty
+################################################################################
+
+mute_if_tty() {
+    fd="$1"
+    indent="$2"
+
+    fd_isatty="\$fd${fd}_isatty"
+    echo "${indent}# mute fd $fd if it is a tty" "$fd"
+    echo "${indent}set $fd_isatty = (int) isatty($fd)"
+    echo "${indent}if $fd_isatty"
+    mute_unconditionally "$fd" "${indent}  "
+    echo "${indent}end"
+}
+
+
+################################################################################
+# Mutes the fds of $PID in $FDS
+################################################################################
+    
+mute() {
+    [ -d "/proc/$PID" ] || exit 1
+    
+    # TODO early exit if no fds
+    
+    MUTE_GDB_SCRIPT="$(mktemp)"
+    
+    # start generating script
+    exec 3>&1 1>"$MUTE_GDB_SCRIPT"
+    
+    echo "# mute GDB script (pid=$PID)"
+    echo
+    
+    echo "# open /dev/null to replace target fds"
+    O_RDWR="$(printf "#include <fcntl.h>\n\nO_RDWR" | gcc -E - | tail -n 1)"
+    devnull="\$devnull"
+    echo "set $devnull = (int) open(\"/dev/null\", $O_RDWR)"
+    echo
+    
+    for fd in $FDS
+    do
+        mute_"$MUTE_MODE" "$fd"
+        echo
+    done
+    
+    echo "# close original /dev/null"
+    echo "call (int) close($devnull)"
+    
+    # restore stdout
+    exec 1>&3 3>&-
+    
+    gdb --pid="$PID" --nx --batch-silent --command="$MUTE_GDB_SCRIPT"
+}
+
+################################################################################
+# Argument parsing
+################################################################################
+
+usage() {
+    cat >&2 <<EOF
+Usage: $MUTE_COMMAND [-af] PID [FD ...]
+
+  -a    only close FDs if they are ttys (if no FDs specified, will close all ttys)
+  -f    close FDs unconditionally
+
+  FD can be a decimal number or one of stdout|stderr|stdin
+EOF
+}
+
+while getopts ":afh" opt
+do
+    case "$opt" in
+        (a) MUTE_MODE="if_tty";;
+        (f) MUTE_MODE="unconditionally";;
+        (h) usage
+            exit 0;;
+        (*) usage
+            exit 2;;
+    esac
+done
+
+shift $((OPTIND - 1))
+
+if [ "$#" -eq 0 ]
+then
+    usage
+    exit 2
+fi
+
+PID=$1
+shift
+
+# check that $PID exists
+if ! kill -0 $PID >/dev/null 2>&1
+then
+    echo "$MUTE_COMMAND: no such process $PID" >&2
+    exit 1
+fi
+
+if [ "$#" -eq 0 ]
+then
+    # no explicit FDs, so either auto-detect (bare -a) or set to 1 and 2 (default)
+    if [ "$MUTE_MODE" = "if_tty" ]
+    then
+        # -a was set, no explicit FDs
+        if ! [ -d "/proc/$PID/fd" ]
+        then
+            echo "$MUTE_COMMAND: could not find /proc/$PID/fd to auto-detect file descriptors" >&2
+            exit 1
+        fi
+        
+        FDS=$(cd "/proc/$PID/fd"; ls)
+    else
+        # default to stdout and stderr
+        FDS="1 2"
+    fi
+else
+    # explicit FDs
+    while [ "$#" -gt 0 ]
+    do
+        fd="$1"
+        shift
+
+        case "$(echo "$fd" | tr [:upper:] [:lower:])" in
+            (stdin)  fd=0;;
+            (stdout) fd=1;;
+            (stderr) fd=2;;
+        esac
+
+        if [ "$fd" != "$(echo "$fd" | tr -dc 0-9)" ]
+        then
+            echo "$MUTE_COMMAND: '$fd' is not a valid file descriptor, ignoring" >&2
+            continue
+        fi
+
+        FDS="$FDS${FDS+ }$fd"
+    done
+
+    if ! [ "$FDS" ]
+    then
+        echo "$MUTE_COMMAND: no valid file descriptors, quitting" >&2
+        exit 2
+    fi
+fi
+
+echo PID=$PID FDS=$FDS MODE=$MUTE_MODE
+mute
