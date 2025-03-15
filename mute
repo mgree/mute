@@ -34,8 +34,8 @@ mute_unconditionally() {
     indent="$2"
 
     echo "${indent}# mute fd $fd unconditionally"
-    echo "${indent}if $devnull > 0"
-    echo "${indent}  call (int) dup2($devnull, $fd)"
+    echo "${indent}if $target > 0"
+    echo "${indent}  call (int) dup2($target, $fd)"
     echo "${indent}else"
     echo "${indent}  call (int) close($fd)"
     echo "${indent}end"
@@ -75,10 +75,13 @@ mute() {
     echo "# mute GDB script (pid=$PID)"
     echo
     
-    echo "# open /dev/null to replace target fds"
+    echo "# open $MUTE_TARGET to replace target fds"
     O_RDWR="$(printf "#include <fcntl.h>\n\nO_RDWR" | gcc -E - | tail -n 1)"
-    devnull="\$devnull"
-    echo "set $devnull = (int) open(\"/dev/null\", $O_RDWR)"
+    O_CREAT="$(printf "#include <fcntl.h>\n\nO_CREAT" | gcc -E - | tail -n 1)"
+    O_TRUNC="$(printf "#include <fcntl.h>\n\nO_TRUNC" | gcc -E - | tail -n 1)"
+    O_MODE="$(printf "0%o" $(( 0666 & ~$(umask) )) )"
+    target="\$target"
+    echo "set $target = (int) open(\"$MUTE_TARGET\", $O_RDWR | $O_CREAT | $O_TRUNC, $O_MODE)"
     echo
     
     for fd in $FDS
@@ -87,12 +90,18 @@ mute() {
         echo
     done
     
-    echo "# close original /dev/null"
-    echo "call (int) close($devnull)"
+    echo "# close original $MUTE_TARGET fd"
+    echo "call (int) close($target)"
     
     # restore stdout
     exec 1>&3 3>&-
-    
+
+    if [ "$MUTE_DRY_RUN" ]
+    then
+        cat "$MUTE_GDB_SCRIPT"
+        return
+    fi
+
     gdb --pid="$PID" --nx --batch-silent --command="$MUTE_GDB_SCRIPT"
 }
 
@@ -102,20 +111,35 @@ mute() {
 
 usage() {
     cat >&2 <<EOF
-Usage: $MUTE_COMMAND [-af] PID [FD ...]
+Usage: $MUTE_COMMAND [-afn] [-o TARGET] PID [FD ...]
 
-  -a    only close FDs if they are ttys (if no FDs specified, will close all ttys)
-  -f    close FDs unconditionally
+  -a         only close FDs if they are ttys (if no FDs specified, will close all tty FDs)
+  -f         close FDs unconditionally
+  -n         dry run; shows the GDB script to be used, but does not run it
+  -o TARGET  redirect FDs to TARGET [default: /dev/null]
+             relative paths are relative to `mute`'s current directory, not PID's
 
-  FD can be a decimal number or one of stdout|stderr|stdin
+  FD can be a decimal number or one of stdout, stderr, or stdin
+
+  Running `mute PID` is the same as `mute -a PID stdout stderr`: FDs 1 and 2 will be
+  closed if they are tty FDs.
 EOF
 }
 
-while getopts ":afh" opt
+MUTE_TARGET="/dev/null"
+while getopts ":afo:nh" opt
 do
     case "$opt" in
         (a) MUTE_MODE="if_tty";;
         (f) MUTE_MODE="unconditionally";;
+        (o) MUTE_TARGET="$OPTARG"
+
+            # make paths relative to OUR cwd, not the inferior's
+            case "$MUTE_TARGET" in
+                ([!/]*) MUTE_TARGET="$PWD/$MUTE_TARGET";;
+            esac
+            ;;
+        (n) MUTE_DRY_RUN=1;;
         (h) usage
             exit 0;;
         (*) usage
@@ -156,7 +180,7 @@ then
         FDS=$(cd "/proc/$PID/fd"; ls)
     else
         # default to stdout and stderr
-        FDS="1 2"
+        FDS="1 2"        
     fi
 else
     # explicit FDs
@@ -187,5 +211,13 @@ else
     fi
 fi
 
-echo PID=$PID FDS=$FDS MODE=$MUTE_MODE
+# if MUTE_MODE is still unset, set it to the default
+: ${MUTE_MODE=if_tty}
+
+if ! type gdb >/dev/null 2>&1
+then
+    echo "$MUTE_COMMAND: `gdb` not found (is it installed and on your PATH?)" >&2
+    exit 2
+fi
+
 mute
