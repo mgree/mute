@@ -12,10 +12,11 @@ redirecting output to `/dev/null`.
 ## Getting started
 
 ```
-Usage: mute [-afn] [-o TARGET] PID [FD ...]
+Usage: mute [-tfan] [-o TARGET] PID [FD ...]
 
-  -a         only close FDs if they are ttys (if no FDs specified, will close all tty FDs)
+  -t         only close FDs if they are ttys (if no FDs specified, will close all tty FDs)
   -f         close FDs unconditionally
+  -a         append to TARGET rather than truncating
   -n         dry run; shows the GDB script to be used, but does not run it
   -o TARGET  redirect FDs to TARGET [default: /dev/null]
              relative paths are relative to `mute`'s current directory, not PID's

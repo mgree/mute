@@ -62,7 +62,7 @@ mute_if_tty() {
 # Mutes the fds of $PID in $FDS
 ################################################################################
     
-mute() {
+main() {
     [ -d "/proc/$PID" ] || exit 1
     
     # TODO early exit if no fds
@@ -78,10 +78,10 @@ mute() {
     echo "# open $MUTE_TARGET to replace target fds"
     O_RDWR="$(printf "#include <fcntl.h>\n\nO_RDWR" | gcc -E - | tail -n 1)"
     O_CREAT="$(printf "#include <fcntl.h>\n\nO_CREAT" | gcc -E - | tail -n 1)"
-    O_TRUNC="$(printf "#include <fcntl.h>\n\nO_TRUNC" | gcc -E - | tail -n 1)"
+    O_TRUNCAPPEND="$(printf "#include <fcntl.h>\n\n$MUTE_WRITEMODE" | gcc -E - | tail -n 1)"
     O_MODE="$(printf "0%o" $(( 0666 & ~$(umask) )) )"
     target="\$target"
-    echo "set $target = (int) open(\"$MUTE_TARGET\", $O_RDWR | $O_CREAT | $O_TRUNC, $O_MODE)"
+    echo "set $target = (int) open(\"$MUTE_TARGET\", $O_RDWR | $O_CREAT | $O_TRUNCAPPEND, $O_MODE)"
     echo
     
     for fd in $FDS
@@ -111,27 +111,31 @@ mute() {
 
 usage() {
     cat >&2 <<EOF
-Usage: $MUTE_COMMAND [-afn] [-o TARGET] PID [FD ...]
+Usage: $MUTE_COMMAND [-tfan] [-o TARGET] PID [FD ...]
 
-  -a         only close FDs if they are ttys (if no FDs specified, will close all tty FDs)
+  -t         only close FDs if they are ttys (if no FDs specified, will close all tty FDs)
   -f         close FDs unconditionally
+  -a         append to TARGET rather than truncating
   -n         dry run; shows the GDB script to be used, but does not run it
   -o TARGET  redirect FDs to TARGET [default: /dev/null]
-             relative paths are relative to `mute`'s current directory, not PID's
+             relative paths are relative to \`mute\`'s current directory, not PID's
 
   FD can be a decimal number or one of stdout, stderr, or stdin
 
-  Running `mute PID` is the same as `mute -a PID stdout stderr`: FDs 1 and 2 will be
+  Running \`mute PID\` is the same as \`mute -a PID stdout stderr\`: FDs 1 and 2 will be
   closed if they are tty FDs.
 EOF
 }
 
 MUTE_TARGET="/dev/null"
-while getopts ":afo:nh" opt
+MUTE_WRITEMODE="O_TRUNC"
+while getopts ":tfano:h" opt
 do
     case "$opt" in
-        (a) MUTE_MODE="if_tty";;
+        (t) MUTE_MODE="if_tty";;
         (f) MUTE_MODE="unconditionally";;
+        (a) MUTE_WRITEMODE="O_APPEND";;
+        (n) MUTE_DRY_RUN=1;;
         (o) MUTE_TARGET="$OPTARG"
 
             # make paths relative to OUR cwd, not the inferior's
@@ -139,7 +143,6 @@ do
                 ([!/]*) MUTE_TARGET="$PWD/$MUTE_TARGET";;
             esac
             ;;
-        (n) MUTE_DRY_RUN=1;;
         (h) usage
             exit 0;;
         (*) usage
@@ -220,4 +223,4 @@ then
     exit 2
 fi
 
-mute
+main
