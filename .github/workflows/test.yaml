@@ -21,8 +21,8 @@ jobs:
 
       - name: Allow unfettered ptrace access
         run: |
+          sudo sysctl kernel.yama.ptrace_scope=0
           cat /proc/sys/kernel/yama/ptrace_scope
-          sudo echo 0 >/proc/sys/kernel/yama/ptrace_scope
 
       - name: Checkout
         uses: actions/checkout@v4
