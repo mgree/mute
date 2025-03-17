@@ -16,7 +16,6 @@ cleanup() {
 
 "$CHAT" -s >out 2>err &
 PID="$!"
-sleep 0.05
 "$MUTE" -dd -f "$PID" 3 2 1 || exit 1
 wait "$PID" || exit 2
 
