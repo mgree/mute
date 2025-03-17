@@ -72,7 +72,7 @@ main() {
     # start generating script
     exec 3>&1 1>"$MUTE_GDB_SCRIPT"
     
-    echo "# mute GDB script (pid=$PID)"
+    echo "# mute GDB script (pid=$PID) $(date -Iseconds)"
     echo
     
     echo "# open $MUTE_TARGET to replace target fds"
@@ -83,6 +83,13 @@ main() {
     target="\$target"
     echo "set $target = (int) open(\"$MUTE_TARGET\", $O_RDWR | $O_CREAT | $O_TRUNCAPPEND, $O_MODE)"
     echo
+
+    if [ "$MUTE_DEBUG" -gt 1 ]
+    then
+        echo "# debugging: show opened file descriptor"
+        echo "print $target"
+        echo
+    fi
     
     for fd in $FDS
     do
@@ -96,15 +103,23 @@ main() {
     # restore stdout
     exec 1>&3 3>&-
 
-    if [ "$MUTE_DRY_RUN" ]
+    if [ "$MUTE_DRY_RUN" ] || [ "$MUTE_DEBUG" -gt 1 ]
     then
         cat "$MUTE_GDB_SCRIPT"
+    fi
+
+    if [ "$MUTE_DRY_RUN" ]
+    then
         return
     fi
 
     if [ "$MUTE_DEBUG" ]
     then
-        gdb --pid="$PID" --nx --batch --command="$MUTE_GDB_SCRIPT" 2>&1
+        echo -n "$MUTE_COMMAND: invoking GDB..."
+        gdb --pid="$PID" --nx --batch        --command="$MUTE_GDB_SCRIPT" 2>&1
+        ec=$?
+        echo "done."
+        return $?
     else
         gdb --pid="$PID" --nx --batch-silent --command="$MUTE_GDB_SCRIPT" 2>/dev/null
     fi
@@ -122,7 +137,7 @@ Usage: $MUTE_COMMAND [-tfan] [-o TARGET] PID [FD ...]
   -f         close FDs unconditionally
   -a         append to TARGET rather than truncating
   -n         dry run; shows the GDB script to be used, but does not run it
-  -d         debug mode (shows debugging output on stdout)
+  -d         debug mode (shows debugging output on stdout; repeat to increase output)
   -o TARGET  redirect FDs to TARGET [default: /dev/null]
              relative paths are relative to \`mute\`'s current directory, not PID's
 
@@ -142,7 +157,7 @@ do
         (f) MUTE_MODE="unconditionally";;
         (a) MUTE_WRITEMODE="O_APPEND";;
         (n) MUTE_DRY_RUN=1;;
-        (d) MUTE_DEBUG=1;;
+        (d) : $((MUTE_DEBUG+=1));;
         (o) MUTE_TARGET="$OPTARG"
 
             # make paths relative to OUR cwd, not the inferior's
@@ -219,7 +234,7 @@ fi
 
 if [ "$MUTE_DEBUG" ]
 then
-    echo "PID=$PID DRYRUN=$MUTE_DRYRUN MODE=$MUTE_MODE TARGET=/dev/null WRITEMODE=$MUTE_WRITEMODE FDS=$FDS"
+    echo "PID=$PID DEBUG=$MUTE_DEBUG DRYRUN=$MUTE_DRYRUN MODE=$MUTE_MODE TARGET=/dev/null WRITEMODE=$MUTE_WRITEMODE FDS=$FDS"
 fi
 
 if ! type gdb >/dev/null 2>&1
