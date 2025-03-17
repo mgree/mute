@@ -258,7 +258,7 @@ if ! [ "$MUTE_DRYRUN" ]
 then
     if ! type gdb >/dev/null 2>&1
     then
-        echo "$MUTE_COMMAND: `gdb` not found (is it installed and on your PATH?)" >&2
+        echo "$MUTE_COMMAND: gdb not found (is it installed and on your PATH?)" >&2
         exit 2
     fi
 
