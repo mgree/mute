@@ -1,4 +1,5 @@
 #!/bin/sh
+# shellcheck disable=SC2059
 
 COMMAND=${0##*/}
 
@@ -27,7 +28,7 @@ done
 
 if ! [ -d "$MUTE_TOP/tests" ]
 then
-    $MUTE_TOP="$PWD"
+    MUTE_TOP="$PWD"
 fi
 
 TEST_DIR="$MUTE_TOP/tests"

@@ -1,8 +1,8 @@
 #!/bin/sh
+# shellcheck disable=SC2164
 
 MUTE_TOP="${MUTE_TOP:-$(git rev-parse --show-toplevel --show-superproject-working-tree 2>/dev/null || echo "${0%/*}")}"
 MUTE="$MUTE_TOP/mute"
-CHAT="$MUTE_TOP/tests/chat"
 
 wd=$(mktemp -d)
 cd "$wd"
@@ -21,9 +21,8 @@ do
     pid=$(python3 -c "import secrets; print(secrets.randbelow($PID_MAX))")
 done
 
-"$MUTE" "$pid" >out 2>err
+"$MUTE" "$pid" >out 2>err && exit 1
 
-[ "$?" -ne 0 ] || exit 1
 [ -f out ] || exit 2
 [ "$(stat -c %s out)" -eq 0 ] || { cat out; exit 3; }
 [ -f err ] || exit 4

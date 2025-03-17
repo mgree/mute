@@ -93,7 +93,7 @@ main() {
     echo "# open $MUTE_TARGET to replace target fds"
     O_RDWR="$(printf "#include <fcntl.h>\n\nO_RDWR" | gcc -E - | tail -n 1)"
     O_CREAT="$(printf "#include <fcntl.h>\n\nO_CREAT" | gcc -E - | tail -n 1)"
-    O_TRUNCAPPEND="$(printf "#include <fcntl.h>\n\n$MUTE_WRITEMODE" | gcc -E - | tail -n 1)"
+    O_TRUNCAPPEND="$(printf "#include <fcntl.h>\n\n%s" "$MUTE_WRITEMODE" | gcc -E - | tail -n 1)"
     O_MODE="$(printf "0%o" $(( 0666 & ~$(umask) )) )"
     target="\$target"
     echo "set $target = (int) open(\"$MUTE_TARGET\", $O_RDWR | $O_CREAT | $O_TRUNCAPPEND, $O_MODE)"
@@ -146,13 +146,14 @@ main() {
 
 usage() {
     cat >&2 <<EOF
-Usage: $MUTE_COMMAND [-tfan] [-o TARGET] PID [FD ...]
+Usage: $MUTE_COMMAND [-tfandv] [-o TARGET] PID [FD ...]
 
   -t         only close FDs if they are ttys (if no FDs specified, will close all tty FDs)
   -f         close FDs unconditionally
   -a         append to TARGET rather than truncating
   -n         dry run; shows the GDB script to be used, but does not run it
   -d         debug mode (shows debugging output on stdout; repeat to increase output)
+  -v         show version information and exit
   -o TARGET  redirect FDs to TARGET [default: /dev/null]
              relative paths are relative to \`mute\`'s current directory, not PID's
 
@@ -165,7 +166,7 @@ EOF
 
 MUTE_TARGET="/dev/null"
 MUTE_WRITEMODE="O_TRUNC"
-while getopts ":tfando:h" opt
+while getopts ":tfandvo:h" opt
 do
     case "$opt" in
         (t) MUTE_MODE="if_tty";;
@@ -181,6 +182,10 @@ do
             esac
             ;;
         (h) usage
+            exit 0;;
+        (v) echo "$MUTE_COMMAND v$MUTE_VERSION"
+            echo
+            echo "Copyright (c) 2025 Michael Greenberg, made available under GPLv3"
             exit 0;;
         (*) usage
             exit 2;;
@@ -210,7 +215,7 @@ then
             exit 1
         fi
         
-        FDS=$(cd "/proc/$PID/fd"; ls)
+        FDS=$(cd "/proc/$PID/fd" || exit; ls)
     else
         # default to stdout and stderr
         FDS="1 2"        
@@ -222,7 +227,7 @@ else
         fd="$1"
         shift
 
-        case "$(echo "$fd" | tr [:upper:] [:lower:])" in
+        case "$(echo "$fd" | tr "[:upper:]" "[:lower:]")" in
             (stdin)  fd=0;;
             (stdout) fd=1;;
             (stderr) fd=2;;
@@ -245,7 +250,7 @@ else
 fi
 
 # if MUTE_MODE is still unset, set it to the default
-: ${MUTE_MODE=if_tty}
+: "${MUTE_MODE=if_tty}"
 
 if [ "$MUTE_DEBUG" ]
 then
@@ -262,7 +267,7 @@ then
         exit 2
     fi
 
-    if ! kill -0 $PID >/dev/null 2>&1
+    if ! kill -0 "$PID" >/dev/null 2>&1
     then
        echo "$MUTE_COMMAND: no such process $PID" >&2
        exit 1
