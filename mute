@@ -24,6 +24,21 @@ cleanup() {
 trap cleanup EXIT
 
 ################################################################################
+# Debugging
+################################################################################
+
+debug() {
+    ec=$?
+
+    if [ "$MUTE_DEBUG" ]
+    then
+        echo "$MUTE_COMMAND: " "$@"
+    fi
+    
+    return $?
+}
+
+################################################################################
 # Mutes a file descriptor unconditionally
 #
 # Will try to redirect to /dev/null before calling close
@@ -115,10 +130,10 @@ main() {
 
     if [ "$MUTE_DEBUG" ]
     then
-        echo -n "$MUTE_COMMAND: invoking GDB..."
+        debug "invoking GDB"
         gdb --pid="$PID" --nx --batch        --command="$MUTE_GDB_SCRIPT" 2>&1
         ec=$?
-        echo "done."
+        debug "GDB done"
         return $?
     else
         gdb --pid="$PID" --nx --batch-silent --command="$MUTE_GDB_SCRIPT" 2>/dev/null
@@ -234,20 +249,24 @@ fi
 
 if [ "$MUTE_DEBUG" ]
 then
-    echo "PID=$PID DEBUG=$MUTE_DEBUG DRYRUN=$MUTE_DRYRUN MODE=$MUTE_MODE TARGET=/dev/null WRITEMODE=$MUTE_WRITEMODE FDS=$FDS"
+    debug "PID=$PID DEBUG=$MUTE_DEBUG DRYRUN=$MUTE_DRYRUN MODE=$MUTE_MODE TARGET=/dev/null WRITEMODE=$MUTE_WRITEMODE FDS=$FDS"
 fi
 
-if ! type gdb >/dev/null 2>&1
-then
-    echo "$MUTE_COMMAND: `gdb` not found (is it installed and on your PATH?)" >&2
-    exit 2
-fi
 
 # check that $PID exists
-if ! kill -0 $PID >/dev/null 2>&1
+if ! [ "$MUTE_DRYRUN" ]
 then
-    echo "$MUTE_COMMAND: no such process $PID" >&2
-    exit 1
+    if ! type gdb >/dev/null 2>&1
+    then
+        echo "$MUTE_COMMAND: `gdb` not found (is it installed and on your PATH?)" >&2
+        exit 2
+    fi
+
+    if ! kill -0 $PID >/dev/null 2>&1
+    then
+       echo "$MUTE_COMMAND: no such process $PID" >&2
+       exit 1
+    fi
 fi
 
 main
