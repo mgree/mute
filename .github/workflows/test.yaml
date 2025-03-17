@@ -1,0 +1,30 @@
+name: Run tests
+
+on:
+  pull_request:
+  push:
+  schedule:
+    - cron: '40 13 * * *'
+
+jobs:
+  test:
+    strategy:
+      fail-fast: true
+
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get install gdb
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Run
+        run: |
+          ./run_tests.sh
+
