@@ -102,7 +102,12 @@ main() {
         return
     fi
 
-    gdb --pid="$PID" --nx --batch-silent --command="$MUTE_GDB_SCRIPT" 2>/dev/null
+    if [ "$MUTE_DEBUG" ]
+    then
+        gdb --pid="$PID" --nx --batch --command="$MUTE_GDB_SCRIPT" 2>&1
+    else
+        gdb --pid="$PID" --nx --batch-silent --command="$MUTE_GDB_SCRIPT" 2>/dev/null
+    fi
 }
 
 ################################################################################
@@ -117,6 +122,7 @@ Usage: $MUTE_COMMAND [-tfan] [-o TARGET] PID [FD ...]
   -f         close FDs unconditionally
   -a         append to TARGET rather than truncating
   -n         dry run; shows the GDB script to be used, but does not run it
+  -d         debug mode (shows debugging output on stdout)
   -o TARGET  redirect FDs to TARGET [default: /dev/null]
              relative paths are relative to \`mute\`'s current directory, not PID's
 
@@ -129,13 +135,14 @@ EOF
 
 MUTE_TARGET="/dev/null"
 MUTE_WRITEMODE="O_TRUNC"
-while getopts ":tfano:h" opt
+while getopts ":tfando:h" opt
 do
     case "$opt" in
         (t) MUTE_MODE="if_tty";;
         (f) MUTE_MODE="unconditionally";;
         (a) MUTE_WRITEMODE="O_APPEND";;
         (n) MUTE_DRY_RUN=1;;
+        (d) MUTE_DEBUG=1;;
         (o) MUTE_TARGET="$OPTARG"
 
             # make paths relative to OUR cwd, not the inferior's
@@ -160,13 +167,6 @@ fi
 
 PID=$1
 shift
-
-# check that $PID exists
-if ! kill -0 $PID >/dev/null 2>&1
-then
-    echo "$MUTE_COMMAND: no such process $PID" >&2
-    exit 1
-fi
 
 if [ "$#" -eq 0 ]
 then
@@ -217,10 +217,22 @@ fi
 # if MUTE_MODE is still unset, set it to the default
 : ${MUTE_MODE=if_tty}
 
+if [ "$MUTE_DEBUG" ]
+then
+    echo "PID=$PID DRYRUN=$MUTE_DRYRUN MODE=$MUTE_MODE TARGET=/dev/null WRITEMODE=$MUTE_WRITEMODE FDS=$FDS"
+fi
+
 if ! type gdb >/dev/null 2>&1
 then
     echo "$MUTE_COMMAND: `gdb` not found (is it installed and on your PATH?)" >&2
     exit 2
+fi
+
+# check that $PID exists
+if ! kill -0 $PID >/dev/null 2>&1
+then
+    echo "$MUTE_COMMAND: no such process $PID" >&2
+    exit 1
 fi
 
 main
