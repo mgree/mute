@@ -102,7 +102,7 @@ main() {
         return
     fi
 
-    gdb --pid="$PID" --nx --batch-silent --command="$MUTE_GDB_SCRIPT"
+    gdb --pid="$PID" --nx --batch-silent --command="$MUTE_GDB_SCRIPT" 2>/dev/null
 }
 
 ################################################################################
