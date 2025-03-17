@@ -37,7 +37,8 @@ then
 fi
 
 i=0
-while [ "$i" -lt 5 ] && sleep 0.2
+sleep 0.5
+while [ "$i" -lt 5 ]
 do
     : $((i+=1))
     echo stdout $i
@@ -46,4 +47,5 @@ do
     then
         echo saved stdout $i >&3
     fi
+    sleep 0.25
 done
