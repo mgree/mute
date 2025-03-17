@@ -19,6 +19,11 @@ jobs:
         run: |
           sudo apt-get install gdb
 
+      - name: Allow unfettered ptrace access
+        run: |
+          cat /proc/sys/kernel/yama/ptrace_scope
+          sudo echo 0 >/proc/sys/kernel/yama/ptrace_scope
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
