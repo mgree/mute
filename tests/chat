@@ -4,18 +4,22 @@ CHAT_COMMAND="${0##*/}"
 
 usage() {
     cat >&2 <<EOF
-Usage: $CHAT_COMMAND [-s]
+Usage: $CHAT_COMMAND [-sw] [N]
 
-  Emit 5 messages on STDOUT and STDERR.
+  Emit N (defaults to 5) numbered messages on STDOUT and STDERR after
+  emitting an unnumbered startup message and a brief pause. Pauses
+  briefly between each line of output.
 
   -s    Copy STDOUT to FD 3
+  -w    Wait for a SIGUSR1 before writing
 EOF
 }
 
-while getopts ":sh" opt
+while getopts ":swh" opt
 do
     case "$opt" in
         (s) SAVE=1;;
+        (w) WAIT=1;;
         (h) usage
             exit 0;;
         (*) usage
@@ -25,10 +29,39 @@ done
 
 shift $((OPTIND - 1))
 
-if [ "$#" -ne 0 ]
+if [ "$#" -gt 1 ]
 then
    usage
    exit 2
+elif [ "$#" -eq 1 ]
+then
+    case "$1" in
+        (*[!0-9]*) printf "%s: %s is not a number\n" "$CHAT_COMMAND" "$1"
+                   exit 2;;
+    esac
+    N="$1"
+else
+    N=5
+fi
+
+if [ "$WAIT" ]
+then
+    initial_pause() {
+        trap 'READY=1' USR1
+        while ! [ "$READY" ]
+        do
+            sleep 0.001
+        done
+        trap - USR1
+    }
+    pause() { : ; }
+else
+    initial_pause() {
+        sleep 0.25
+    }
+    pause() {
+        sleep 0.1
+    }
 fi
 
 if [ "$SAVE" ]
@@ -37,8 +70,16 @@ then
 fi
 
 i=0
-sleep 0.5
-while [ "$i" -lt 5 ]
+
+echo stdout
+echo stderr >&2
+if [ "$SAVE" ]
+then
+    echo saved stdout >&3
+fi
+
+initial_pause
+while [ "$i" -lt "$N" ]
 do
     : $((i+=1))
     echo stdout $i
@@ -47,5 +88,5 @@ do
     then
         echo saved stdout $i >&3
     fi
-    sleep 0.25
+    pause
 done

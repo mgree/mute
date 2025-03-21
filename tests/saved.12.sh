@@ -15,12 +15,13 @@ cleanup() {
     return "$ec"
 }
 
-"$CHAT" -s >out 2>err &
+"$CHAT" -ws >out 2>err &
 PID="$!"
 "$MUTE" -d -f "$PID" || exit 1
+kill -USR1 "$PID"
 wait "$PID" || exit 2
 
 [ -f out ] || exit 3
-[ "$(cat out)" = "$(printf "saved stdout %d\n" 1 2 3 4 5)" ] || { cat out; exit 4; }
+[ "$(cat out)" = "$(printf "stdout\nsaved stdout\n"; printf "saved stdout %d\n" 1 2 3 4 5)" ] || { cat out; exit 4; }
 [ -f err ] || exit 5
-[ "$(stat -c %s err)" -eq 0 ] || { cat err; exit 6; }
+[ "$(cat err)" = "stderr" ] || { cat err; exit 6; }

@@ -15,15 +15,15 @@ cleanup() {
 }
 
 PID_MAX=$(cat /proc/sys/kernel/pid_max)
-pid=$(python3 -c "import secrets; print(secrets.randbelow($PID_MAX))")
-while kill -0 "$pid" >/dev/null 2>&1
+PID=$(python3 -c "import secrets; print(secrets.randbelow($PID_MAX))")
+while kill -0 "$PID" >/dev/null 2>&1
 do
-    pid=$(python3 -c "import secrets; print(secrets.randbelow($PID_MAX))")
+    PID=$(python3 -c "import secrets; print(secrets.randbelow($PID_MAX))")
 done
 
-"$MUTE" "$pid" >out 2>err && exit 1
+"$MUTE" "$PID" >out 2>err && exit 1
 
 [ -f out ] || exit 2
 [ "$(stat -c %s out)" -eq 0 ] || { cat out; exit 3; }
 [ -f err ] || exit 4
-[ "$(cat err)" = "mute: no such process $pid" ] || { cat err; exit 5; }
+[ "$(cat err)" = "mute: no such process $PID" ] || { cat err; exit 5; }
