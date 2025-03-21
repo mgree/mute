@@ -30,7 +30,7 @@ trap cleanup EXIT
 debug() {
     ec=$?
 
-    if [ "$MUTE_DEBUG" ]
+    if [ "$MUTE_DEBUG" -gt 0 ]
     then
         echo "$MUTE_COMMAND: " "$@"
     fi
@@ -128,7 +128,7 @@ main() {
         return
     fi
 
-    if [ "$MUTE_DEBUG" ]
+    if [ "$MUTE_DEBUG" -gt 0 ]
     then
         debug "invoking GDB"
         gdb --pid="$PID" --nx --batch        --command="$MUTE_GDB_SCRIPT" 2>&1
@@ -164,6 +164,7 @@ Usage: $MUTE_COMMAND [-tfandv] [-o TARGET] PID [FD ...]
 EOF
 }
 
+MUTE_DEBUG=0
 MUTE_TARGET="/dev/null"
 MUTE_WRITEMODE="O_TRUNC"
 while getopts ":tfandvo:h" opt
@@ -252,7 +253,7 @@ fi
 # if MUTE_MODE is still unset, set it to the default
 : "${MUTE_MODE=if_tty}"
 
-if [ "$MUTE_DEBUG" ]
+if [ "$MUTE_DEBUG" -gt 0 ]
 then
     debug "PID=$PID DEBUG=$MUTE_DEBUG DRYRUN=$MUTE_DRYRUN MODE=$MUTE_MODE TARGET=/dev/null WRITEMODE=$MUTE_WRITEMODE FDS=$FDS"
 fi
