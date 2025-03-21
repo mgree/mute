@@ -24,7 +24,9 @@ wait "$PID" || exit 2
 [ -f out ] || exit 3
 [ -f err ] || exit 4
 
+# shellcheck disable=SC2002
 out_lines=$(cat out | wc -l)
+# shellcheck disable=SC2002
 err_lines=$(cat err | wc -l)
 
 printf "%d lines on stdout and %d lines on stderr\n" "$out_lines" "$err_lines"
