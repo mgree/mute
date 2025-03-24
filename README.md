@@ -1,5 +1,7 @@
 # mute
 
+[![Run tests](https://github.com/mgree/mute/actions/workflows/test.yaml/badge.svg)](https://github.com/mgree/mute/actions/workflows/test.yaml)
+
 `mute $PID` silences `$PID`---closing STDOUT and STDIN (or, if you
 like, every file descriptor pointing to a terminal).
 
