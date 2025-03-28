@@ -14,19 +14,20 @@ redirecting output to `/dev/null`.
 ## Getting started
 
 ```
-Usage: mute [-tfand] [-o TARGET] PID [FD ...]
+Usage: mute [-tfandv] [-o TARGET] PID [FD ...]
 
   -t         only close FDs if they are ttys (if no FDs specified, will close all tty FDs)
   -f         close FDs unconditionally
   -a         append to TARGET rather than truncating
   -n         dry run; shows the GDB script to be used, but does not run it
-  -d         debug mode (shows debugging output on stdout)
+  -d         debug mode (shows debugging output on stdout; repeat to increase output)
+  -v         show version information and exit
   -o TARGET  redirect FDs to TARGET [default: /dev/null]
              relative paths are relative to `mute`'s current directory, not PID's
 
   FD can be a decimal number or one of stdout, stderr, or stdin
 
-  Running `mute PID` is the same as `mute -a PID stdout stderr`: FDs 1 and 2 will be
+  Running `mute PID` is the same as `mute -t PID stdout stderr`: FDs 1 and 2 will be
   closed if they are tty FDs.
 ```
 

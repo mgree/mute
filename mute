@@ -159,7 +159,7 @@ Usage: $MUTE_COMMAND [-tfandv] [-o TARGET] PID [FD ...]
 
   FD can be a decimal number or one of stdout, stderr, or stdin
 
-  Running \`mute PID\` is the same as \`mute -a PID stdout stderr\`: FDs 1 and 2 will be
+  Running \`mute PID\` is the same as \`mute -t PID stdout stderr\`: FDs 1 and 2 will be
   closed if they are tty FDs.
 EOF
 }
