@@ -1,0 +1,40 @@
+#!/usr/bin/env expect
+
+if { [info exists ::env(MUTE_TOP)] } {
+    set MUTE_TOP $::env(MUTE_TOP)
+}
+if { ! [info exists MUTE_TOP]} {
+    set MUTE_TOP [exec git rev-parse --show-toplevel --show-superproject-working-tree 2>/dev/null]
+}
+if { ! [info exists MUTE_TOP]} {
+    set MUTE_TOP "[file dirname $argv0]/.."
+}
+
+puts "MUTE_TOP=$MUTE_TOP"
+set MUTE "$MUTE_TOP/mute"
+set CHAT "$MUTE_TOP/tests/chat"
+
+log_user 0
+set timeout 5
+
+set chatpid [spawn $CHAT -w]
+set chat_spawn_id $spawn_id
+puts "chat pid=$chatpid"
+expect "stdout"
+expect "stderr"
+
+set mutepid [spawn $MUTE -d $chatpid]
+puts "mute pid=$mutepid, muting $chatpid"
+interact
+
+spawn kill -USR1 $chatpid
+puts "mute complete, restarted chat $chatpid"
+
+set spawn_id $chat_spawn_id
+expect {
+    timeout        {puts "timed out"; exit 1}
+    "stdout"       {puts "saw stdout"; exit 2}
+    "stderr"       {puts "saw stderr"; exit 3}
+    "saved stdout" {puts "saw saved stdout"; exit 3}
+    eof            {puts "correctly saw no more output"}
+}

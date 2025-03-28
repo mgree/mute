@@ -1,7 +1,7 @@
 #!/bin/sh
 # shellcheck disable=SC2164
 
-MUTE_TOP="${MUTE_TOP:-$(git rev-parse --show-toplevel --show-superproject-working-tree 2>/dev/null || echo "${0%/*}")}"
+MUTE_TOP="${MUTE_TOP:-$(git rev-parse --show-toplevel --show-superproject-working-tree 2>/dev/null || echo "${0%/*}/..")}"
 MUTE="$MUTE_TOP/mute"
 
 wd=$(mktemp -d)

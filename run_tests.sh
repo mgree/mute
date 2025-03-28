@@ -48,8 +48,11 @@ else
     printf "%s\n" "$@" >"$selected"
 fi
 
-COUNT_OF_ALL_TESTS="$(find "$TEST_DIR" -type f -executable -name '*.sh' | wc -l)"
-TESTS="$(find "$TEST_DIR" -type f -executable -name '*.sh' | grep -f "$selected")"
+find_tests() {
+    find "$TEST_DIR" -type f -executable \( -name '*.sh' -o -name '*.exp' \)
+}
+COUNT_OF_ALL_TESTS="$(find_tests | wc -l)"
+TESTS="$(find_tests | grep -f "$selected")"
 COUNT_OF_SELECTED_TESTS="$(echo "$TESTS" | wc -l)"
 rm "$selected"
 
@@ -77,9 +80,20 @@ PASSED=0
 for test in $TESTS
 do
     name="$(basename "$test")"
-    name="${name%%.sh}"
+    case "$name" in
+        (*.sh)  kind="SCRIPT";;
+        (*.exp) kind="EXPECT"
+                if ! type expect >/dev/null 2>&1
+                then
+                    printf "\nTEST $name:%$((40 - (5 + ${#name} + 1) ))s" ""
+                    printf "FAIL (could not find 'expect')\n"
+                    : $((FAILED += 1))
+                    continue
+                fi
+                ;;
+    esac
 
-    printf "\nTEST $name:%$((40 - (5 + ${#name} + 1) ))s" ""
+    printf "\n$kind TEST $name:%$((40 - (5 + ${#name} + 1) ))s" ""
 
     out=$(mktemp)
     err=$(mktemp)

@@ -1,4 +1,4 @@
-name: Run tests
+name: Test suite
 
 on:
   pull_request:
@@ -17,7 +17,7 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          sudo apt-get install gdb
+          sudo apt-get install gdb expect
 
       - name: Allow unfettered ptrace access
         run: |
