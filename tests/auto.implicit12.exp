@@ -23,7 +23,7 @@ puts "chat pid=$chatpid"
 expect "stdout"
 expect "stderr"
 
-system $MUTE -d $chatpid
+system $MUTE -dd $chatpid
 puts "mute complete, restarting chat $chatpid"
 system kill -USR1 $chatpid
 
