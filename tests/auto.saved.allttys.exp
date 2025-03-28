@@ -17,13 +17,14 @@ set CHAT "$MUTE_TOP/tests/chat"
 log_user 0
 set timeout 5
 
-set chatpid [spawn $CHAT -w]
+set chatpid [spawn $CHAT -s -w]
 set chat_spawn_id $spawn_id
 puts "chat pid=$chatpid"
 expect "stdout"
 expect "stderr"
+expect "saved stdout"
 
-system $MUTE -dd $chatpid 1 2
+system $MUTE -dd -t $chatpid
 puts "mute complete, restarting chat $chatpid"
 system kill -USR1 $chatpid
 

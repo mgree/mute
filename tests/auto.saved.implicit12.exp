@@ -17,21 +17,29 @@ set CHAT "$MUTE_TOP/tests/chat"
 log_user 0
 set timeout 5
 
-set chatpid [spawn $CHAT -w]
+set chatpid [spawn sh -c "exec $CHAT -s -w 5"]
 set chat_spawn_id $spawn_id
 puts "chat pid=$chatpid"
 expect "stdout"
 expect "stderr"
+expect "saved stdout"
 
-system $MUTE -dd $chatpid 1 2
+system $MUTE -dd $chatpid
 puts "mute complete, restarting chat $chatpid"
 system kill -USR1 $chatpid
 
 set spawn_id $chat_spawn_id
-expect {
-    timeout        {puts "timed out"; exit 1}
-    "stdout"       {puts "saw stdout"; exit 2}
-    "stderr"       {puts "saw stderr"; exit 3}
-    "saved stdout" {puts "saw saved stdout"; exit 3}
-    eof            {puts "correctly saw no more output"}
+exp_internal 1
+for {set i 1} {$i <= 5} {incr i} {
+    expect {
+        timeout           {puts "timed out"; exit 1}
+        "saved stdout $i" {}        
+        "stdout"          {puts "saw stdout"; exit 2}
+        "stderr"          {puts "saw stderr"; exit 3}
+        eof               {puts "premature eof"; exit 5}
+    }
 }
+expect {
+    eof {puts "saved stdout output was correct"}
+}
+

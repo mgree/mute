@@ -17,13 +17,13 @@ set CHAT "$MUTE_TOP/tests/chat"
 log_user 0
 set timeout 5
 
-set chatpid [spawn $CHAT -w]
+set tmpfile [exec mktemp]
+set chatpid [spawn sh -c "exec $CHAT -w 5 >$tmpfile"]
 set chat_spawn_id $spawn_id
 puts "chat pid=$chatpid"
-expect "stdout"
 expect "stderr"
 
-system $MUTE -dd $chatpid 1 2
+system $MUTE -dd $chatpid
 puts "mute complete, restarting chat $chatpid"
 system kill -USR1 $chatpid
 
@@ -32,6 +32,22 @@ expect {
     timeout        {puts "timed out"; exit 1}
     "stdout"       {puts "saw stdout"; exit 2}
     "stderr"       {puts "saw stderr"; exit 3}
-    "saved stdout" {puts "saw saved stdout"; exit 3}
+    "saved stdout" {puts "saw saved stdout"; exit 4}
     eof            {puts "correctly saw no more output"}
 }
+
+spawn -open [open $tmpfile]
+expect {
+    "stdout" {puts "stdout redirection was successful"}
+    eof      {puts "stdout was not redirected"; system rm $tmpfile; exit 5}
+}
+for {set i 1} {$i <= 5} {incr i} {
+    expect {
+        "stdout $i" {}
+        eof         {puts "stdout counts are missing"; system rm $tmpfile; exit 6}
+    }
+}
+expect {
+    eof {puts "stdout output was correct"}
+}
+system rm $tmpfile
