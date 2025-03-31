@@ -4,7 +4,7 @@
 
 cd "$MUTE_TOP" || exit 1
 
-LINTS=$(find ./lint -type f -executable)
+LINTS=$(find ./lints -type f -executable)
 printf "Running %d lints: " "$(echo "$LINTS" | wc -l)"
 log=$(mktemp)
 errors=0
