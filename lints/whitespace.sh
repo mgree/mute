@@ -5,7 +5,7 @@ MUTE_TOP="${MUTE_TOP:-$(git rev-parse --show-toplevel --show-superproject-workin
 tab="$(printf "\t")"
 errors=0
 # shellcheck disable=SC2044
-for file in $(find "$MUTE_TOP" -type f \! -path '*/.git/*')
+for file in $(find "$MUTE_TOP" -type f \! -path '*/.git/*' \! -path '*/autom4te.cache*' -name 'config.*' -name 'configure')
 do
     relpath="${file#"$MUTE_TOP/"}"
 
@@ -18,7 +18,7 @@ do
     fi
 
     # find tabs (ignoring Makefiles!)
-    if grep -I -lq -e "$tab" "$file" && ! [ "$(basename "$file")" = "Makefile" ]
+    if grep -I -lq -e "$tab" "$file" && [ "$(basename "$file")" != "Makefile" ] && [ "$(basename "$file")" != "Makefile.in" ]
     then
         echo "$relpath: tabs"
         grep --line-number -e "$tab" "$file" | sed 's/\t$/\o33[41m&\o033[0m/'
