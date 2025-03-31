@@ -173,13 +173,11 @@ do
         (a) MUTE_WRITEMODE="O_APPEND";;
         (n) MUTE_DRY_RUN=1;;
         (d) : $((MUTE_DEBUG+=1));;
-        (o) MUTE_TARGET="$OPTARG"
-
-            # make paths relative to OUR cwd, not the inferior's
-            case "$MUTE_TARGET" in
-                ([!/]*) MUTE_TARGET="$PWD/$MUTE_TARGET";;
-            esac
-            ;;
+        (o) if [ "$MUTE_TARGET" ]
+            then
+                echo "$MUTE_COMMAND: '-o $OPTARG' overrides previous '-o $MUTE_TARGET'" >&2
+            fi
+            MUTE_TARGET="$OPTARG";;
         (h) usage
             exit 0;;
         (v) echo "$MUTE_COMMAND v$MUTE_VERSION"
@@ -258,6 +256,12 @@ fi
 : "${MUTE_WRITEMODE=O_TRUNC}"
 : "${MUTE_TARGET=/dev/null}"
 : "${MUTE_MODE=if_tty}"
+
+# make paths relative to OUR cwd, not the inferior's
+case "$MUTE_TARGET" in
+    ([!/]*) MUTE_TARGET="$PWD/$MUTE_TARGET";;
+esac
+
 
 if [ "$MUTE_DEBUG" -gt 0 ]
 then
