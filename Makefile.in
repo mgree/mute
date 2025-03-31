@@ -36,7 +36,7 @@ $(DISTTGZ): $(DISTDIR)
 	tar czf $@ $<
 	rm -rf $(DISTDIR)
 
-$(DISTDIR): mute $(shell find lints) run_lints.sh  $(shell find tests) run_tests.sh $(shell find man) Makefile.in configure configure.ac config.guess config.sub install-sh LICENSE README.md
+$(DISTDIR): mute $(shell find lints) run_lints.sh $(shell find tests) run_tests.sh $(shell find man) Makefile.in configure configure.ac config.guess config.sub install-sh LICENSE README.md
 	mkdir $@
 	cp mute run_lints.sh run_tests.sh Makefile.in configure configure.ac config.guess config.sub install-sh LICENSE README.md $@
 	cp -R man $@

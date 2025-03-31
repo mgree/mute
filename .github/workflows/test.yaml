@@ -99,6 +99,7 @@ jobs:
           rm -r mute-dist.tgz
           ./configure
           make all
+          find . | sort
 
       - name: Run tests and linter
         run: |
@@ -126,31 +127,6 @@ jobs:
         run: |
           ./run_lints.sh
 
-  manpage:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install dependencies
-        run: |
-          sudo apt-get install pandoc
-
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-
-      - name: Build manpage
-        run: |
-          autoconf
-          ./configure
-          make man/mute.1
-
-
-      - name: Upload manpage
-        uses: actions/upload-artifact@v4
-        with:
-          name: man.1
-          path: man/mute.1
-
   shellcheck:
     runs-on: ubuntu-latest
     steps:
@@ -171,7 +147,6 @@ jobs:
       - test-checkout
       - test-dist
       - lint
-      - manpage
       - shellcheck
     runs-on: ubuntu-latest
     if: ${{ github.ref == 'refs/heads/main' }}
