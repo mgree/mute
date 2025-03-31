@@ -1,8 +1,14 @@
 #!/bin/sh
 
+COMMAND=${0##*/}
+
 : "${MUTE_TOP=$(git rev-parse --show-toplevel --show-superproject-working-tree 2>/dev/null || echo "${0%/*}")}"
 
-cd "$MUTE_TOP" || exit 1
+cd "$MUTE_TOP" || {
+    echo "$COMMAND: couldn't find the root of the mute distribution"
+    exit 2
+}
+
 
 LINTS=$(find ./lints -type f -executable)
 printf "Running %d lints: " "$(echo "$LINTS" | wc -l)"

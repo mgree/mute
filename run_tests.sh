@@ -31,6 +31,11 @@ then
     MUTE_TOP="$PWD"
 fi
 
+MUTE_TOP="$(cd "$MUTE_TOP" || exit 1; pwd)" || {
+    echo "$COMMAND: couldn't find the root of the mute distribution"
+    exit 2
+}
+
 TEST_DIR="$MUTE_TOP/tests"
 if ! [ -d "$TEST_DIR" ]
 then
