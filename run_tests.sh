@@ -49,7 +49,8 @@ else
 fi
 
 find_tests() {
-    find "$TEST_DIR" -type f -executable \( -name '*.sh' -o -name '*.exp' \)
+    find "$TEST_DIR" -type f -executable -name '*.sh'
+    find "$TEST_DIR" -type f -executable -name '*.exp'
 }
 COUNT_OF_ALL_TESTS="$(find_tests | wc -l)"
 TESTS="$(find_tests | grep -f "$selected")"

@@ -165,8 +165,6 @@ EOF
 }
 
 MUTE_DEBUG=0
-MUTE_TARGET="/dev/null"
-MUTE_WRITEMODE="O_TRUNC"
 while getopts ":tfandvo:h" opt
 do
     case "$opt" in
@@ -250,7 +248,15 @@ else
     fi
 fi
 
-# if MUTE_MODE is still unset, set it to the default
+# if MUTE_WRITEMODE was set but not MUTE_TARGET, issue a warning
+if [ "$MUTE_WRITE_MODE" ] && ! [ "$MUTE_TARGET" ]
+then
+    echo "$MUTE_COMMAND: setting '-a' without specifying '-o TARGET' has no effect" >&2
+fi
+
+# set defaults
+: "${MUTE_WRITEMODE=O_TRUNC}"
+: "${MUTE_TARGET=/dev/null}"
 : "${MUTE_MODE=if_tty}"
 
 if [ "$MUTE_DEBUG" -gt 0 ]
