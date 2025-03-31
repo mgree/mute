@@ -1,0 +1,7 @@
+configure
+config.log
+config.status
+configure.scan
+autom4te.cache
+autoscan.log
+Makefile

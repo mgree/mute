@@ -7,7 +7,7 @@ on:
     - cron: '40 13 * * *'
 
 jobs:
-  test:
+  test-checkout:
     strategy:
       fail-fast: true
 
@@ -32,6 +32,87 @@ jobs:
       - name: Run
         run: |
           ./run_tests.sh
+
+  dist:
+    strategy:
+      fail-fast: true
+
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get install gdb expect pandoc
+
+      - name: Allow unfettered ptrace access
+        run: |
+          sudo sysctl kernel.yama.ptrace_scope=0
+          cat /proc/sys/kernel/yama/ptrace_scope
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Check autoscan
+        run: |
+          autoscan | tee autoscan.out
+          ! [ -s autoscan.out ]
+
+      - name: Configure and build manpage
+        run: |
+          autoconf
+          ./configure
+          make dist
+
+      - name: Upload dist tarball
+        uses: actions/upload-artifact@v4
+        with:
+          name: mute-dist.tgz
+          path: mute-*.tgz
+
+  test-dist:
+    needs: dist
+    strategy:
+      fail-fast: false
+
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get install gdb expect pandoc
+
+      - name: Allow unfettered ptrace access
+        run: |
+          sudo sysctl kernel.yama.ptrace_scope=0
+          cat /proc/sys/kernel/yama/ptrace_scope
+
+      - name: Download dist tarball
+        uses: actions/download-artifact@v4
+
+      - name: Unpack tarball; configure and build utilities
+        run: |
+          tar xzf mute-dist.tgz/mute-*.tgz --strip-components=1
+          rm -r mute-dist.tgz
+          ./configure
+          make all
+
+      - name: Run tests and linter
+        run: |
+          make test
+          make lint
+
+      - name: Install utilities
+        run: |
+          sudo make install
+
+      - name: Check manpage
+        run: |
+          man -w mute
+          man --pager=cat mute
 
   lint:
     runs-on: ubuntu-latest
@@ -79,3 +160,32 @@ jobs:
         uses: ludeeus/action-shellcheck@master
         with:
           ignore_paths: >-
+
+  prerelease:
+    needs:
+      - test-checkout
+      - test-dist
+      - lint
+      - manpage
+      - shellcheck
+    runs-on: ubuntu-latest
+    if: ${{ github.ref == 'refs/heads/main' }}
+
+    steps:
+      - name: Download binaries
+        uses: actions/download-artifact@v4
+
+      - name: Rename tarball
+        run: |
+          mv mute-dist.tgz/mute-*.tgz mute-latest.tgz
+          rmdir mute-dist.tgz
+
+      - name: Deploy 'latest' release
+        uses: "marvinpinto/action-automatic-releases@latest"
+        with:
+          repo_token: "${{ secrets.GITHUB_TOKEN }}"
+          automatic_release_tag: "latest"
+          prerelease: true
+          title: "Latest distribution tarball"
+          files: |
+            mute-latest.tgz

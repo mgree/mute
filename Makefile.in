@@ -1,0 +1,55 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+bindir=@bindir@
+datarootdir=@datarootdir@
+mandir=@mandir@
+
+CC=@CC@
+CFLAGS=@CFLAGS@
+CPPFLAGS=@CPPFLAGS@
+INSTALL=@INSTALL@
+
+TARGETS=man/mute.1.gz
+
+DISTDIR=@PACKAGE_TARNAME@-@PACKAGE_VERSION@
+DISTTGZ=$(DISTDIR).tgz
+
+.PHONY: all install test lint clean
+
+all: $(TARGETS)
+
+install: mute $(TARGETS)
+	$(INSTALL) -d $(bindir)
+	$(INSTALL) -m 755 mute $(bindir)
+	$(INSTALL) -d $(mandir)/man1
+	$(INSTALL) -m 644 man/mute.1.gz $(mandir)/man1
+
+test: run_tests.sh $(shell find tests -type f)
+	./run_tests.sh
+
+lint: run_lints.sh $(shell find lints -type f)
+	./run_lints.sh
+
+dist: $(DISTTGZ)
+
+$(DISTTGZ): $(DISTDIR)
+	tar czf $@ $<
+	rm -rf $(DISTDIR)
+
+$(DISTDIR): mute $(shell find lints) run_lints.sh  $(shell find tests) run_tests.sh $(shell find man) Makefile.in configure configure.ac config.guess config.sub install-sh LICENSE README.md
+	mkdir $@
+	cp mute run_lints.sh run_tests.sh Makefile.in configure configure.ac config.guess config.sub install-sh LICENSE README.md $@
+	cp -R man $@
+	cp -R lints $@
+	cp -R tests $@
+
+man/mute.1.gz: man/mute.1
+	gzip <$< >$@
+
+man/mute.1: man/mute.1.md
+	pandoc --standalone --from markdown-smart --to man -o $@ $<
+
+clean:
+ifeq (@enable_manpage@, yes)
+	-rm man/mute.1 man/mute.1.gz
+endif
