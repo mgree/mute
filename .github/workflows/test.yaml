@@ -140,7 +140,10 @@ jobs:
 
       - name: Build manpage
         run: |
+          autoconf
+          ./configure
           make man/mute.1
+
 
       - name: Upload manpage
         uses: actions/upload-artifact@v4
@@ -160,6 +163,8 @@ jobs:
         uses: ludeeus/action-shellcheck@master
         with:
           ignore_paths: >-
+            ./configure
+            ./install-sh
 
   prerelease:
     needs:
