@@ -7,7 +7,7 @@
 #
 # https://github.com/mgree/mute
 
-MUTE_VERSION="0.1.0"
+MUTE_VERSION="v0.1.0"
 MUTE_COMMAND="${0##*/}"
 
 ################################################################################
@@ -16,9 +16,9 @@ MUTE_COMMAND="${0##*/}"
 
 cleanup() {
     ec=$?
-    
+
     [ -f "$MUTE_GDB_SCRIPT" ] && rm "$MUTE_GDB_SCRIPT"
-    
+
     exit $ec
 }
 trap cleanup EXIT
@@ -34,7 +34,7 @@ debug() {
     then
         echo "$MUTE_COMMAND: " "$@"
     fi
-    
+
     return $?
 }
 
@@ -76,20 +76,20 @@ mute_if_tty() {
 ################################################################################
 # Mutes the fds of $PID in $FDS
 ################################################################################
-    
+
 main() {
     [ -d "/proc/$PID" ] || exit 1
-    
+
     # TODO early exit if no fds
-    
+
     MUTE_GDB_SCRIPT="$(mktemp)"
-    
+
     # start generating script
     exec 3>&1 1>"$MUTE_GDB_SCRIPT"
-    
+
     echo "# mute GDB script (pid=$PID) $(date -Iseconds)"
     echo
-    
+
     echo "# open $MUTE_TARGET to replace target fds"
     O_RDWR="$(printf "#include <fcntl.h>\n\nO_RDWR" | gcc -E - | tail -n 1)"
     O_CREAT="$(printf "#include <fcntl.h>\n\nO_CREAT" | gcc -E - | tail -n 1)"
@@ -105,16 +105,16 @@ main() {
         echo "print $target"
         echo
     fi
-    
+
     for fd in $FDS
     do
         mute_"$MUTE_MODE" "$fd"
         echo
     done
-    
+
     echo "# close original $MUTE_TARGET fd"
     echo "call (int) close($target)"
-    
+
     # restore stdout
     exec 1>&3 3>&-
 
@@ -180,7 +180,7 @@ do
             MUTE_TARGET="$OPTARG";;
         (h) usage
             exit 0;;
-        (v) echo "$MUTE_COMMAND v$MUTE_VERSION"
+        (v) echo "$MUTE_COMMAND $MUTE_VERSION"
             echo
             echo "Copyright (c) 2025 Michael Greenberg, made available under GPLv3"
             exit 0;;
@@ -211,11 +211,11 @@ then
             echo "$MUTE_COMMAND: could not find /proc/$PID/fd to auto-detect file descriptors" >&2
             exit 1
         fi
-        
+
         FDS=$(cd "/proc/$PID/fd" || exit; ls)
     else
         # default to stdout and stderr
-        FDS="1 2"        
+        FDS="1 2"
     fi
 else
     # explicit FDs

@@ -33,6 +33,40 @@ jobs:
         run: |
           ./run_tests.sh
 
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Run lints
+        run: |
+          ./run_lints.sh
+
+  manpage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get install pandoc
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Build manpage
+        run: |
+          make man/mute.1
+
+      - name: Upload manpage
+        uses: actions/upload-artifact@v4
+        with:
+          name: man.1
+          path: man/mute.1
+
   shellcheck:
     runs-on: ubuntu-latest
     steps:
