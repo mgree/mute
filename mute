@@ -110,7 +110,7 @@ main() {
     done
     if ! [ "$fds_nonempty" ]
     then
-        debug "no FDS in $FDS"
+        debug "no FDS in $FDS" >&3
         exit 0
     fi
 
