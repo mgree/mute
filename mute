@@ -78,10 +78,6 @@ mute_if_tty() {
 ################################################################################
 
 main() {
-    [ -d "/proc/$PID" ] || exit 1
-
-    # TODO early exit if no fds
-
     MUTE_GDB_SCRIPT="$(mktemp)"
 
     # start generating script
@@ -108,9 +104,15 @@ main() {
 
     for fd in $FDS
     do
+        fds_nonempty=1
         mute_"$MUTE_MODE" "$fd"
         echo
     done
+    if ! [ "$fds_nonempty" ]
+    then
+        debug "no FDS in $FDS"
+        exit 0
+    fi
 
     echo "# close original $MUTE_TARGET fd"
     echo "call (int) close($target)"
