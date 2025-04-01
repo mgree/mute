@@ -36,7 +36,7 @@ Usage: mute [-tfandv] [-o TARGET] PID [FD ...]
 `mute` uses the GNU debugger, `gdb`, to intervene on processes. `mute`
 will not work without `gdb`.
 
-Autodetecting file descriptors that point at ttys with `mute -a`
+Autodetecting file descriptors that point at ttys with `mute -t`
 currently depends on `procfs`, and will fail if `/proc/PID/fd/` does
 not exist.
 
