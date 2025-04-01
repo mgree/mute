@@ -85,16 +85,6 @@ AC_SUBST(enable_manpage)
 # programs just used in tests
 missing_test_programs=0
 
-AC_PROG_AWK
-AC_MSG_CHECKING([whether awk is gawk (for tests)])
-if test "$(stat -L -c %i "$(type -p "$AWK")")" != "$(stat -L -c %i "$(type -p awk)")"
-then
-        AC_MSG_RESULT([no; some tests may behave strangely])
-        : $((missing_test_programs += 1))
-else
-        AC_MSG_RESULT([yes])
-fi
-
 dnl MUTE_REQUIRE_PROG(progname)
 AC_DEFUN([MUTE_TEST_PROG], [
 AC_MSG_CHECKING([for $1 (for tests)])
@@ -109,6 +99,7 @@ fi
 
 MUTE_TEST_PROG([expect])
 MUTE_TEST_PROG([sleep])
+MUTE_TEST_PROG([git])
 
 if test "$missing_test_programs" -ne 0
 then
