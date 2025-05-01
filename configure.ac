@@ -122,7 +122,7 @@ cat <<EOF
 ${PACKAGE_NAME} version ${PACKAGE_VERSION}
 
 Prefix: ${prefix}
-Compiling utilities: $enable_utils
+Building manpage: ${enable_manpage}
 
 To build and install, run:
 
