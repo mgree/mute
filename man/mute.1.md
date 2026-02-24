@@ -29,7 +29,7 @@ Each *FD* can be a file descriptor number or one of *stdin* (meaning 0), *stdout
 
 **-f**
 
-: Close all file descriptors unconditionally. (Normally, **mute** will only close the specified file descriptors if they are ttys according to **isatty()**. Overrides **-t**.
+: Close all file descriptors unconditionally. (Normally, **mute** will only close the specified file descriptors if they are ttys according to **isatty()**.) Overrides **-t**.
 
 **-h**
 
@@ -51,7 +51,7 @@ Each *FD* can be a file descriptor number or one of *stdin* (meaning 0), *stdout
 
 **-o** *TARGET*
 
-: Redirect the given file descriptors to *TARGET* instead of */dev/null*.
+: Redirect the given file descriptors to *TARGET* instead of */dev/null*. If *TARGET* exists, it will be truncated. (Add **-a** to append to *TARGET*.)
 
 ## Arguments
 
