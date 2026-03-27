@@ -2,7 +2,11 @@ name: Test suite
 
 on:
   pull_request:
+    branches:
+      - main
   push:
+    branches:
+    - main
   schedule:
     - cron: '40 13 * * *'
 
@@ -98,8 +102,8 @@ jobs:
 
       - name: Unpack tarball; configure and build utilities
         run: |
-          tar xzf mute-dist.tgz/mute-*.tgz --strip-components=1
-          rm -r mute-dist.tgz
+          tar xzf mute-*.tgz --strip-components=1
+          rm -r mute-*.tgz
           ./configure
           make all
           find . | sort
