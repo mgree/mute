@@ -99,8 +99,9 @@ jobs:
       - name: Unpack tarball; configure and build utilities
         run: |
           tree
-          tar xzf mute-dist.tgz/mute-*.tgz --strip-components=1
-          rm -r mute-dist.tgz
+          tar xzf mute-*.tgz --strip-components=1
+          rm -r mute-*.tgz
+          tree
           ./configure
           make all
           find . | sort
