@@ -15,8 +15,8 @@ cleanup() {
     return "$ec"
 }
 
-# chat won't wait, but will try to output 100 times
-"$CHAT" 100 >out 2>err &
+# chat won't wait, but will try to output 2000 times
+"$CHAT" 2000 >out 2>err &
 PID="$!"
 "$MUTE" -d -f "$PID" || exit 1
 wait "$PID" || exit 2
@@ -29,6 +29,6 @@ err_lines=$(wc -l <err)
 
 printf "%d lines on stdout and %d lines on stderr\n" "$out_lines" "$err_lines"
 
-[ "$out_lines" -lt 40 ] || exit 5
-[ "$err_lines" -lt 40 ] || exit 6
+[ "$out_lines" -lt 400 ] || exit 5
+[ "$err_lines" -lt 400 ] || exit 6
 
