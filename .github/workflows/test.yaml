@@ -164,8 +164,7 @@ jobs:
 
       - name: Rename tarball
         run: |
-          mv mute-dist.tgz/mute-*.tgz mute-latest.tgz
-          rmdir mute-dist.tgz
+          mv mute-*.tgz mute-latest.tgz
 
       - name: Deploy 'latest' release
         uses: "marvinpinto/action-automatic-releases@latest"
